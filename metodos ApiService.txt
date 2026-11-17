@@ -1,0 +1,35 @@
+@FormUrlEncoded
+@POST("usuarios-login.php")
+suspend fun login(
+    @Field("correo") correo:String,
+    @Field("contrasena") contrasena:String
+): Map<String,Any>
+
+
+@FormUrlEncoded
+@POST("usuarios-registro-explorador.php")
+suspend fun registrarExplorador(
+    @Field("nombre") nombre:String,
+    @Field("telefono") telefono:String,
+    @Field("correo") correo:String,
+    @Field("contrasena") contrasena:String,
+    @Field("direccion") direccion:String,
+    @Field("intereses") intereses:String,
+    @Field("sobreMi") sobreMi:String,
+    @Field("lenguas") lenguas:String,
+    @Field("genero") genero:String
+): Map<String,String>
+
+@FormUrlEncoded
+@POST("usuarios-registro-anfitrion.php")
+suspend fun registrarAnfitrion(
+    @Field("nombre") nombre:String,
+    @Field("telefono") telefono:String,
+    @Field("correo") correo:String,
+    @Field("contrasena") contrasena:String,
+    @Field("direccion") direccion:String,
+    @Field("oficio") oficio:String,
+    @Field("sobreMi") sobreMi:String,
+    @Field("lenguas") lenguas:String,
+    @Field("genero") genero:String
+): Map<String,String>
