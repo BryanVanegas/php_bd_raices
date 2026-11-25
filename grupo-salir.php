@@ -1,14 +1,21 @@
 <?php
-require __DIR__ . '/config.php';
-soloMetodo('POST');
+// salirGrupo()  ->  POST
+header("Content-Type: application/json; charset=UTF-8");
 
-$grupoId = (int)($_POST['grupoId'] ?? 0);
-$correo  = correoValido($_POST['correo'] ?? '');
-if ($grupoId <= 0) {
-    fallo('Falta grupoId');
+include 'conexion.php';
+
+$grupoId = (int)$_POST['grupoId'];
+$correo  = $_POST['correo'];
+
+$stmt = mysqli_prepare($conn, "DELETE FROM miembros_grupo WHERE grupoId = ? AND correoUsuario = ?");
+mysqli_stmt_bind_param($stmt, "is", $grupoId, $correo);
+
+if (mysqli_stmt_execute($stmt)) {
+    echo json_encode(["mensaje" => "OK"]);
+} else {
+    http_response_code(500);
+    echo json_encode(["mensaje" => "ERROR"]);
 }
 
-db()->prepare('DELETE FROM miembros_grupo WHERE grupo_id = ? AND correo_usuario = ?')
-    ->execute([$grupoId, $correo]);
-
-responder(['mensaje' => 'OK']);
+mysqli_stmt_close($stmt);
+?>

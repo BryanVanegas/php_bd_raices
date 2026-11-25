@@ -1,14 +1,33 @@
 <?php
-require __DIR__ . '/config.php';
-soloMetodo('GET');
+header("Content-Type: application/json; charset=UTF-8");
+include 'conexion.php';
 
-$correo = correoValido($_GET['correo'] ?? '');
 
-$st = db()->prepare(
-    'SELECT id, nombre, descripcion, estado, correo_creador AS correoCreador
-       FROM grupos_viaje
-      WHERE id NOT IN (SELECT grupo_id FROM miembros_grupo WHERE correo_usuario = ?)
-      ORDER BY id DESC'
-);
-$st->execute([$correo]);
-responder($st->fetchAll());
+$sql = "SELECT *
+        FROM grupos_viaje
+        ";
+
+$stmt = mysqli_prepare($conn, $sql);
+
+
+if (!$stmt) {
+    http_response_code(500);
+    echo json_encode(["mensaje" => "ERROR"]);
+    exit;
+}
+
+if (mysqli_stmt_execute($stmt)) {
+    $resultado = mysqli_stmt_get_result($stmt);
+    $grupos = [];
+
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        $grupos[] = $fila;
+    }
+
+    echo json_encode($grupos);
+} else {
+    http_response_code(500);
+    echo json_encode(["mensaje" => "ERROR"]);
+}
+
+mysqli_stmt_close($stmt);

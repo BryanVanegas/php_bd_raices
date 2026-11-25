@@ -1,23 +1,43 @@
 <?php
-require __DIR__ . '/config.php';
-soloMetodo('GET');
+// obtenerMensajes()  ->  GET
+header("Content-Type: application/json; charset=UTF-8");
 
-$grupoId = (int)($_GET['grupo_id'] ?? 0);
-if ($grupoId <= 0) {
-    fallo('Falta grupo_id');
+include 'conexion.php';
+
+$grupoId = 0;
+if (isset($_GET['grupoId'])) {
+    $grupoId = (int)$_GET['grupoId'];
 }
 
-// Últimos 200 mensajes, devueltos del más antiguo al más reciente.
-$st = db()->prepare(
-    'SELECT * FROM (
-        SELECT id, grupo_id AS grupoId, correo_autor AS correoAutor,
-               nombre_autor AS nombreAutor, genero_autor AS generoAutor, texto, fecha
-          FROM mensajes_grupo
-         WHERE grupo_id = ?
-         ORDER BY fecha DESC, id DESC
-         LIMIT 200
-     ) t
-     ORDER BY fecha ASC, id ASC'
-);
-$st->execute([$grupoId]);
-responder($st->fetchAll());
+if ($grupoId <= 0) {
+    http_response_code(400);
+    echo json_encode(["mensaje" => "Falta grupo_id"]);
+    exit;
+}
+
+// Últimos 200 mensajes, del más antiguo al más reciente
+$sql = "SELECT * FROM (
+            SELECT id, grupoId, correoAutor,
+                    nombreAutor, generoAutor, texto, fecha
+            FROM mensajes_grupo
+            WHERE grupoId = ?
+            ORDER BY fecha DESC, id DESC
+            LIMIT 200
+        ) t
+        ORDER BY fecha ASC, id ASC";
+
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $grupoId);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+$mensajes = array();
+
+while ($row = mysqli_fetch_assoc($result)) {
+    $mensajes[] = $row;
+}
+
+echo json_encode($mensajes);
+
+mysqli_stmt_close($stmt);
+?>

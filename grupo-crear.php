@@ -1,35 +1,52 @@
 <?php
-require __DIR__ . '/config.php';
-soloMetodo('POST');
+header("Content-Type: application/json; charset=UTF-8");
+include 'conexion.php';
 
-$nombre      = trim((string)($_POST['nombre'] ?? ''));
-$descripcion = trim((string)($_POST['descripcion'] ?? ''));
-$correo      = correoValido($_POST['correoCreador'] ?? '');
-
-if ($nombre === '' || mb_strlen($nombre) > 120) {
-    fallo('El nombre es obligatorio (máximo 120 caracteres)');
-}
-if (mb_strlen($descripcion) > 500) {
-    fallo('La descripción es demasiado larga (máximo 500 caracteres)');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(["mensaje" => "METODO_NO_PERMITIDO"]);
+    exit;
 }
 
-$pdo = db();
-$pdo->beginTransaction();
-try {
-    $pdo->prepare(
-        'INSERT INTO grupos_viaje (nombre, descripcion, estado, correo_creador)
-         VALUES (?, ?, \'PLANEANDO\', ?)'
-    )->execute([$nombre, $descripcion, $correo]);
-    $id = (int)$pdo->lastInsertId();
+$nombre      = trim($_POST['nombre'] ?? '');
+$descripcion = trim($_POST['descripcion'] ?? '');
+$correo      = trim($_POST['correoCreador'] ?? '');
 
-    $pdo->prepare('INSERT INTO miembros_grupo (grupo_id, correo_usuario) VALUES (?, ?)')
-        ->execute([$id, $correo]);
-    $pdo->commit();
-} catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    throw $e;
+if (!$nombre || !$correo || !filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode(["mensaje" => "DATOS_INCOMPLETOS"]);
+    exit;
 }
 
-responder(['mensaje' => 'OK']);
+// Ajustado a los límites reales de tu CREATE TABLE (VARCHAR 100 y 250)
+if (mb_strlen($nombre) > 100 || mb_strlen($descripcion) > 250) {
+    http_response_code(400);
+    echo json_encode(["mensaje" => "DATOS_EXCEDEN_LONGITUD"]);
+    exit;
+}
+
+$estado = "PLANEANDO";
+$sql = "INSERT INTO grupos_viaje (nombre, descripcion, estado, correoCreador)
+        VALUES (?, ?, ?, ?)";
+
+$stmt = mysqli_prepare($conn, $sql);
+
+if (!$stmt) {
+    http_response_code(500);
+    echo json_encode(["mensaje" => "ERROR"]);
+    exit;
+}
+
+mysqli_stmt_bind_param($stmt, "ssss", $nombre, $descripcion, $estado, $correo);
+
+if (mysqli_stmt_execute($stmt)) {
+    echo json_encode([
+        "mensaje" => "OK",
+        "id" => mysqli_insert_id($conn)
+    ]);
+} else {
+    http_response_code(500);
+    echo json_encode(["mensaje" => "ERROR"]);
+}
+
+mysqli_stmt_close($stmt);
